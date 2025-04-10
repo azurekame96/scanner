@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF to PNG Converter</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    canvas { margin: 10px auto; border: 1px solid #ccc; display: block; }
+    #preview { display: flex; flex-wrap: wrap; justify-content: center; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <h2>Convert PDF to PNG</h2>
+  <input type="file" id="upload" accept="application/pdf"><br>
+  <div id="preview"></div>
+  <button onclick="downloadAll()">Download All as PNG</button>
+
+  <script>
+    const upload = document.getElementById('upload');
+    const preview = document.getElementById('preview');
+    let canvases = [];
+
+    upload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileReader = new FileReader();
+      fileReader.onload = async () => {
+        const typedarray = new Uint8Array(fileReader.result);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+
+        preview.innerHTML = '';
+        canvases = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: context, viewport }).promise;
+
+          preview.appendChild(canvas);
+          canvases.push(canvas);
+        }
+      };
+      fileReader.readAsArrayBuffer(file);
+    });
+
+    function downloadAll() {
+      canvases.forEach((canvas, index) => {
+        const link = document.createElement('a');
+        link.download = `page-${index + 1}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
