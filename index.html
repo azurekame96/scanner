@@ -1,79 +1,241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>PNG to PDF Converter</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulator Persentase</title>
   <style>
-    body {
-      font-family: Arial; text-align: center; padding: 20px;
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
     }
-    input[type="file"] {
-      margin-top: 20px;
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: auto;
+      min-height: 100%;
+      background: linear-gradient(to bottom right, #5ee7df, #b490ca);
     }
-    #preview {
+    .container {
+      min-height: 100vh;
+      width: 100vw;
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      margin-top: 20px;
+      align-items: center;
+      padding: 10px;
     }
-    #preview img {
-      max-width: 200px;
-      margin: 10px;
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 100%;  /* Lebar kartu mengikuti lebar layar */
+      max-width: 480px;  /* Lebar maksimal */
+      height: auto;  /* Tinggi kartu mengikuti konten */
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow-y: auto;  /* Agar konten di dalam kartu bisa scroll jika terlalu panjang */
+    }
+    h2 {
+      font-size: 24px;  /* Membuat judul lebih besar */
+      margin: 0;
+      padding-bottom: 10px;
+      text-align: center;
+      color: #333;
+    }
+    label {
+      font-size: 16px;  /* Membesarkan ukuran font label */
+      margin-top: 10px;
+      font-weight: 600;
+      color: #444;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 15px;  /* Menambah padding untuk input dan select */
+      font-size: 16px;  /* Membesarkan ukuran font input dan select */
+      border-radius: 8px;
       border: 1px solid #ccc;
+      background: #f5f5f5;
+      margin-top: 8px;
+    }
+    .note {
+      font-size: 14px;  /* Membesarkan ukuran font note */
+      color: #777;
+      margin-bottom: 10px;
     }
     button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
+      background: #4A90E2;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;  /* Membesarkan ukuran font tombol */
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:hover {
+      background: #357ABD;
+    }
+    .result {
+      font-size: 16px;  /* Membesarkan ukuran font hasil */
+      font-weight: 600;
+      color: #222;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 30px;
+    }
+
+    body.dark-mode {
+      background: #333;
+    }
+    .dark-mode .card {
+      background: #444;
+      color: #fff;
+    }
+    .dark-mode h2, .dark-mode label, .dark-mode .note {
+      color: #fff;
+    }
+    .dark-mode input, .dark-mode select {
+      background: #666;
+      border-color: #888;
+      color: #fff;
+    }
+    .dark-mode button {
+      background: #5e7d97;
+    }
+    .dark-mode button:hover {
+      background: #4b6787;
+    }
+    .dark-mode .result {
+      color: #fff;
+    }
+
+    @media (max-width: 480px) {
+      h2 {
+        font-size: 22px;
+      }
+      label {
+        font-size: 16px;
+      }
+      input, select {
+        font-size: 16px;
+        padding: 10px 15px;
+      }
+      button {
+        font-size: 16px;
+        padding: 12px;
+      }
+      .card {
+        padding: 15px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>Convert PNG/JPG to PDF</h2>
-  <input type="file" id="imageInput" accept="image/png,image/jpeg" multiple><br>
-  <div id="preview"></div>
-  <button onclick="downloadPDF()">Download as PDF</button>
+  <div class="container">
+    <div class="card">
+      <h2>Kalkulator Persentase</h2>
+
+      <label for="operation">Jenis Perhitungan</label>
+      <select id="operation" onchange="updateKeterangan()">
+        <option value="diskon">Diskon (Harga - %)</option>
+        <option value="peningkatan">Peningkatan (Harga + %)</option>
+        <option value="persenAB">% dari A ke B</option>
+        <option value="persenAdariB">% A dari B</option>
+      </select>
+
+      <label id="labelA">Nilai A</label>
+      <input type="number" id="value1" placeholder="Contoh: 10000" oninput="hitung()" />
+      <div class="note" id="noteA"></div>
+
+      <label id="labelB">Nilai B / Persen</label>
+      <input type="number" id="value2" placeholder="Contoh: 25" oninput="hitung()" />
+      <div class="note" id="noteB"></div>
+
+      <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+      <div class="result" id="hasil"></div>
+    </div>
+  </div>
 
   <script>
-    const imageInput = document.getElementById('imageInput');
-    const preview = document.getElementById('preview');
-    let images = [];
+    function updateKeterangan() {
+      const op = document.getElementById('operation').value;
+      const labelA = document.getElementById('labelA');
+      const labelB = document.getElementById('labelB');
+      const noteA = document.getElementById('noteA');
+      const noteB = document.getElementById('noteB');
 
-    imageInput.addEventListener('change', function () {
-      preview.innerHTML = '';
-      images = [];
-      const files = Array.from(this.files);
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          preview.appendChild(img);
-          images.push(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    async function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-      for (let i = 0; i < images.length; i++) {
-        if (i > 0) pdf.addPage();
-        const img = new Image();
-        img.src = images[i];
-        await new Promise(resolve => {
-          img.onload = () => {
-            const width = pdf.internal.pageSize.getWidth();
-            const height = pdf.internal.pageSize.getHeight();
-            pdf.addImage(img, 'PNG', 0, 0, width, height);
-            resolve();
-          };
-        });
+      switch (op) {
+        case 'diskon':
+          labelA.innerText = "Harga Awal";
+          noteA.innerText = "Masukkan harga sebelum diskon.";
+          labelB.innerText = "Persentase Diskon (%)";
+          noteB.innerText = "Besar potongan yang ingin dihitung.";
+          break;
+        case 'peningkatan':
+          labelA.innerText = "Harga Awal";
+          noteA.innerText = "Masukkan harga sebelum peningkatan.";
+          labelB.innerText = "Persentase Kenaikan (%)";
+          noteB.innerText = "Kenaikan dalam persen.";
+          break;
+        case 'persenAB':
+          labelA.innerText = "Nilai A (Awal)";
+          noteA.innerText = "Nilai sebelum berubah.";
+          labelB.innerText = "Nilai B (Akhir)";
+          noteB.innerText = "Nilai setelah berubah.";
+          break;
+        case 'persenAdariB':
+          labelA.innerText = "Nilai A (Bagian)";
+          noteA.innerText = "Nilai kecil yang dibandingkan.";
+          labelB.innerText = "Nilai B (Total)";
+          noteB.innerText = "Total keseluruhan nilai.";
+          break;
       }
-      pdf.save('converted.pdf');
+
+      hitung();
     }
+
+    function hitung() {
+      const op = document.getElementById('operation').value;
+      const A = parseFloat(document.getElementById('value1').value);
+      const B = parseFloat(document.getElementById('value2').value);
+      const hasilDiv = document.getElementById('hasil');
+
+      if (isNaN(A) || isNaN(B)) {
+        hasilDiv.innerText = "Mohon isi semua nilai.";
+        return;
+      }
+
+      let hasil = 0;
+      switch (op) {
+        case 'diskon':
+          hasil = A - (A * B / 100);
+          hasilDiv.innerText = `Harga setelah diskon: ${Math.round(hasil)}`;
+          break;
+        case 'peningkatan':
+          hasil = A + (A * B / 100);
+          hasilDiv.innerText = `Harga setelah peningkatan: ${Math.round(hasil)}`;
+          break;
+        case 'persenAB':
+          hasil = ((B - A) / A) * 100;
+          hasilDiv.innerText = `Perubahan dari A ke B: ${Math.round(hasil)}%`;
+          break;
+        case 'persenAdariB':
+          hasil = (A / B) * 100;
+          hasilDiv.innerText = `A adalah ${Math.round(hasil)}% dari B`;
+          break;
+        default:
+          hasilDiv.innerText = "Pilih jenis perhitungan!";
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    updateKeterangan();
   </script>
 </body>
 </html>
